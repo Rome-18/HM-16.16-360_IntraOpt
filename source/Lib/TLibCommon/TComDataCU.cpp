@@ -1398,7 +1398,7 @@ Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM
       iAboveIntraDir = pcCUAbove->getIntraDir( CHANNEL_TYPE_LUMA, AbovePartIdx );
     }
   }
-
+  
   assert (2<NUM_MOST_PROBABLE_MODES);
   if(iLeftIntraDir == iAboveIntraDir)
   {
@@ -1408,16 +1408,16 @@ Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM
     }
 
     if (iLeftIntraDir > 1) // angular modes
-    {
+    { 
       uiIntraDirPred[0] = iLeftIntraDir;
       uiIntraDirPred[1] = ((iLeftIntraDir + 29) % 32) + 2;
       uiIntraDirPred[2] = ((iLeftIntraDir - 1 ) % 32) + 2;
     }
     else //non-angular
-    {
+    {   
       uiIntraDirPred[0] = PLANAR_IDX;
       uiIntraDirPred[1] = DC_IDX;
-      uiIntraDirPred[2] = VER_IDX;
+      uiIntraDirPred[2] = VER_IDX;     
     }
   }
   else
@@ -1434,7 +1434,7 @@ Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM
       uiIntraDirPred[2] = PLANAR_IDX;
     }
     else
-    {
+    {   
       uiIntraDirPred[2] =  (iLeftIntraDir+iAboveIntraDir)<2? VER_IDX : DC_IDX;
     }
   }

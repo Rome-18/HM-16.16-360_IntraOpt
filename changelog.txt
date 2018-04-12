@@ -1,0 +1,9 @@
+During the selection of intra-prediction modes, the CU position is evaluated. If the CU is in the top or bottom 25% of the frame, the following algorithm is applied during the intra mode selection.
+
+1 - The intra modes are evaluated in the following order
+	Int priorityDirOrder[35] = {0,1,10,26,9,11,8,12,7,13,6,14,5,15,4,16,3,17,2,18,25,27,24,28,23,29,22,30,21,31,20,32,19,33,34};
+And only the 11 first modes are evaluated during the rough RD-cost estimation, that is, from mode 0 to mode 6
+2 - If the PU is 64x64, 32x32, or 16x16, the 3 best modes are carried tot he full RD-cost estimation (unchanged from original)
+    If the PU is 8x8 ou 4x4, the 5 best modes are carried to the full RD-cost estimation (reduces from 8 to 5 from original)
+3 - The most probable mode selection is left unchanged
+4 - The remaining of the encoding is left unchanged

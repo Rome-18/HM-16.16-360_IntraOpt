@@ -2231,7 +2231,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
   TComTURecurse tuRecurseWithPU(tuRecurseCU, false, (uiInitTrDepth==0)?TComTU::DONT_SPLIT : TComTU::QUAD_SPLIT);
 
   do
-  {
+  { //  Choose the best prediction mode for all PU sizes
     const UInt uiPartOffset=tuRecurseWithPU.GetAbsPartIdxTU();
 //  for( UInt uiPU = 0, uiPartOffset=0; uiPU < uiNumPU; uiPU++, uiPartOffset += uiQNumParts )
   //{
@@ -2241,14 +2241,31 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     //===== determine set of modes to be tested (using prediction signal only) =====
     Int numModesAvailable     = 35; //total number of Intra modes
     UInt uiRdModeList[FAST_UDI_MAX_RDMODE_NUM];
+    //  Number of modes which go through the full RD-cost evaluation
     Int numModesForFullRD = m_pcEncCfg->getFastUDIUseMPMEnabled()?g_aucIntraModeNumFast_UseMPM[ uiWidthBit ] : g_aucIntraModeNumFast_NotUseMPM[ uiWidthBit ];
-
+    //printf("Modes for full rd %d\n", numModesForFullRD);
     // this should always be true
     assert (tuRecurseWithPU.ProcessComponentSection(COMPONENT_Y));
     initIntraPatternChType( tuRecurseWithPU, COMPONENT_Y, true DEBUG_STRING_PASS_INTO(sTemp2) );
-
+    
+    //  iagostorch begin
+    //  Custom priority: the PUs in the special bands will be predicted with a subset of the following modes, always starting from mode 0
+    Int priorityDirOrder[35] = {0,1,10,26,9,11,8,12,7,13,6,14,5,15,4,16,3,17,2,18,25,27,24,28,23,29,22,30,21,31,20,32,19,33,34};
+    //Int standardDirSet[35] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34};
+    
+    float verticalPosition = pcCU->getCUPelY()/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); //Decimal number representing the vertical position within the frame. 0.00 -> PU at the top, 0.5 -> PU at the middle
+    // Condition which triggers the algorithm. i.e. the CTU is in the top or bottom 25% of the frame
+    Bool reducedSetCondition = (verticalPosition <= UPPER_BAND)||(verticalPosition >= LOWER_BAND);
+    
+    if(reducedSetCondition){
+        numModesAvailable = 11;
+        if(numModesForFullRD == 8){   // If it is a 4x4 or 8x8 PU, the number of full RD-Cost evaluation candidates is reduced from 8 to 5
+            numModesForFullRD = 5;
+        }
+    }
+    //iagostorch end
     Bool doFastSearch = (numModesForFullRD != numModesAvailable);
-    if (doFastSearch)
+    if (doFastSearch)   //  Rough RD-cost estimation. Select a subset of the modes to perform the full RD-Cost evaluation
     {
       assert(numModesForFullRD < numModesAvailable);
 
@@ -2270,7 +2287,10 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
       distParam.bApplyWeight = false;
       for( Int modeIdx = 0; modeIdx < numModesAvailable; modeIdx++ )
       {
-        UInt       uiMode = modeIdx;
+        //  iagostorch begin
+        //UInt       uiMode = modeIdx;
+        UInt       uiMode = priorityDirOrder[modeIdx];
+        //  iagostorch end
         Distortion uiSad  = 0;
 
         const Bool bUseFilter=TComPrediction::filteringIntraReferenceSamples(COMPONENT_Y, uiMode, puRect.width, puRect.height, chFmt, sps.getSpsRangeExtension().getIntraSmoothingDisabledFlag());
@@ -2290,10 +2310,11 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 #if DEBUG_INTRA_SEARCH_COSTS
         std::cout << "1st pass mode " << uiMode << " SAD = " << uiSad << ", mode bits = " << iModeBits << ", cost = " << cost << "\n";
 #endif
-
+        // Updates the candidates list (modes which will pass through full RD-Cost evaluation)
         CandNum += xUpdateCandList( uiMode, cost, numModesForFullRD, uiRdModeList, CandCostList );
       }
-
+      
+      //    Defines the Most Probable Modes (MPM) based on neighbor PUs
       if (m_pcEncCfg->getFastUDIUseMPMEnabled())
       {
         Int uiPreds[NUM_MOST_PROBABLE_MODES] = {-1, -1, -1};
@@ -2318,6 +2339,12 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
           }
         }
       }
+//      PU position and which modes were selected to go through full rd evaluation
+//      printf("PU Vpos: %.2f\tPU size: %.0f\tModes for full RD\n",verticalPosition,pow(2,uiWidthBit+1));
+//      for(Int iago=0; iago<numModesForFullRD ;iago++){
+//          printf("%d,",uiRdModeList[iago]);
+//      }
+//      printf("\n");
     }
     else
     {
