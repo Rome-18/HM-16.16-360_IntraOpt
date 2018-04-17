@@ -2268,8 +2268,21 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
       const Bool bUseHadamard=pcCU->getCUTransquantBypass(0) == 0;
       m_pcRdCost->setDistParam(distParam, sps.getBitDepth(CHANNEL_TYPE_LUMA), piOrg, uiStride, piPred, uiStride, puRect.width, puRect.height, bUseHadamard);
       distParam.bApplyWeight = false;
+  
+      Int uiPreds[NUM_MOST_PROBABLE_MODES] = {-1, -1, -1};    
+      // extract the Most Probable Modes (MPMs) from the neighbor PUs
+      if (m_pcEncCfg->getFastUDIUseMPMEnabled())
+      {
+        Int iMode = -1;
+        pcCU->getIntraDirPredictor( uiPartOffset, uiPreds, COMPONENT_Y, &iMode );   //uiPreds holds the three MPMs for current PU
+      }
+      
+      // perform RDM for all the modes, except for the MPMs
       for( Int modeIdx = 0; modeIdx < numModesAvailable; modeIdx++ )
       {
+        if((modeIdx == uiPreds[0])||(modeIdx == uiPreds[1])||(modeIdx == uiPreds[2])){  //if the current mode is already in the MPMs, skip the RDM
+            continue;
+        }
         UInt       uiMode = modeIdx;
         Distortion uiSad  = 0;
 
@@ -2293,31 +2306,10 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 
         CandNum += xUpdateCandList( uiMode, cost, numModesForFullRD, uiRdModeList, CandCostList );
       }
-
-      if (m_pcEncCfg->getFastUDIUseMPMEnabled())
-      {
-        Int uiPreds[NUM_MOST_PROBABLE_MODES] = {-1, -1, -1};
-
-        Int iMode = -1;
-        pcCU->getIntraDirPredictor( uiPartOffset, uiPreds, COMPONENT_Y, &iMode );
-
-        const Int numCand = ( iMode >= 0 ) ? iMode : Int(NUM_MOST_PROBABLE_MODES);
-
-        for( Int j=0; j < numCand; j++)
-        {
-          Bool mostProbableModeIncluded = false;
-          Int mostProbableMode = uiPreds[j];
-
-          for( Int i=0; i < numModesForFullRD; i++)
-          {
-            mostProbableModeIncluded |= (mostProbableMode == uiRdModeList[i]);
-          }
-          if (!mostProbableModeIncluded)
-          {
-            uiRdModeList[numModesForFullRD++] = mostProbableMode;
-          }
-        }
-      }
+      
+      uiRdModeList[numModesForFullRD++] = uiPreds[0];  //adds the MPMs to the full-rd list
+      uiRdModeList[numModesForFullRD++] = uiPreds[1];
+      uiRdModeList[numModesForFullRD++] = uiPreds[2];
     }
     else
     {
@@ -2429,6 +2421,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         break;
       }
 #else
+      //uiBestPUMode = 34;
       UInt uiOrgMode = uiBestPUMode;
 #endif
 
@@ -2525,6 +2518,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     }
 
     //=== update PU data ====
+    //uiBestPUMode = 34;
     pcCU->setIntraDirSubParts     ( CHANNEL_TYPE_LUMA, uiBestPUMode, uiPartOffset, uiDepth + uiInitTrDepth );
   } while (tuRecurseWithPU.nextSection(tuRecurseCU));
 
