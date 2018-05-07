@@ -2249,21 +2249,56 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     initIntraPatternChType( tuRecurseWithPU, COMPONENT_Y, true DEBUG_STRING_PASS_INTO(sTemp2) );
     
     //  iagostorch begin
-    //  Custom priority: the PUs in the special bands will be predicted with a subset of the following modes, always starting from mode 0
-    Int priorityDirOrder[35] = {0,1,10,26,9,11,8,12,7,13,6,14,5,15,4,16,3,17,2,18,25,27,24,28,23,29,22,30,21,31,20,32,19,33,34};
-    //Int standardDirSet[35] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34};
+    //  Custom priority: the PUs in the special bands will be predicted with a subset of the following modes, always starting from mode 0   
+    // First 12 values are 90% intersection of lower and upper, 15 are 90% union
+    Int modes64[35] = { 0, 10, 1, 9, 11, 26, 34, 12, 8, 7, 6, 13, 5, 2, 4, 14, 3, 33, 15, 32, 31, 30, 16, 28, 29, 17, 27, 24, 25, 23, 22, 18, 21, 19, 20};
+    // First 11 values are 90% (intersection), 12 are 90% union
+    Int modes32[35] = { 0, 10, 1, 9, 11, 8, 12, 7, 26, 13, 6, 34, 14, 5, 4, 15, 2, 3, 33, 16, 32, 17, 31, 18, 30, 28, 29, 19, 27, 20, 21, 25, 22, 24, 23};
+    // First 17 values are 90% (intersection), 18 are 90% union
+    Int modes16[35] = { 0, 1, 10, 12, 8, 11, 9, 7, 13, 6, 14, 26, 15, 5, 16, 4, 17, 34, 3, 2, 18, 33, 19, 32, 31, 20, 21, 22, 30, 29, 28, 23, 24, 27, 25};
+    // First 20 values are 90% (intersection), 21 are 90% union
+    Int modes8[35] =  { 0, 1, 12, 11, 8, 10, 13, 9, 7, 14, 6, 15, 26, 16, 5, 18, 17, 34, 4, 2, 19, 3, 21, 20, 33, 22, 32, 23, 31, 24, 30, 29, 27, 28, 25};
+    // First 21 values are 90% (intersection), 21 are 90% union
+    Int modes4[35] =  { 0, 1, 12, 13, 10, 14, 8, 11, 9, 7, 26, 15, 6, 17, 16, 5, 18, 19, 4, 3, 34, 20, 2, 21, 22, 33, 23, 32, 30, 31, 24, 29, 28, 27, 25};
+            
+    Int standardDirSet[35] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34};
+    Int priorityDirOrder[35];
+    int c;  //Used to copy the PU size-specific array into the directions array
     
     float verticalPosition = pcCU->getCUPelY()/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); //Decimal number representing the vertical position within the frame. 0.00 -> PU at the top, 0.5 -> PU at the middle
     // Condition which triggers the algorithm. i.e. the CTU is in the top or bottom 25% of the frame
     Bool reducedSetCondition = (verticalPosition <= UPPER_BAND)||(verticalPosition >= LOWER_BAND);
     
     if(reducedSetCondition){
-        numModesAvailable = 11;
-        if(numModesForFullRD == 8){   // If it is a 4x4 or 8x8 PU, the number of full RD-Cost evaluation candidates is reduced from 8 to 5
-            numModesForFullRD = 5;
+        switch(uiWidthBit){
+            case 5: //PU 64x64
+                numModesAvailable = 15;  // 4   5   12  15   // 75%i 80%i 90%i 90%u (i -> intersection, u -> union)
+                for(c=0; c<numModesAvailable; c++) priorityDirOrder[c] = modes64[c];
+                break;
+            case 4: //PU 32x32
+                numModesAvailable = 12;  // 5   6   11  12
+                for(c=0; c<numModesAvailable; c++) priorityDirOrder[c] = modes32[c];
+                break;
+            case 3: //PU 16x16
+                numModesAvailable = 18; //  9  11  17 18
+                for(c=0; c<numModesAvailable; c++) priorityDirOrder[c] = modes16[c];
+                break;
+            case 2: //PU 8x8
+                numModesAvailable = 21; //  11  13  20  21
+                for(c=0; c<numModesAvailable; c++) priorityDirOrder[c] = modes8[c];
+                break;
+            case 1: //PU 4x4
+                numModesAvailable = 21; //  13  14  21  21
+                for(c=0; c<numModesAvailable; c++) priorityDirOrder[c] = modes4[c];
+                break;       
+            default:
+                printf("Default\n");
+                numModesAvailable = 35;
+                for(c=0; c<numModesAvailable; c++) priorityDirOrder[c] = standardDirSet[c];
+                break;
         }
     }
-    //iagostorch end
+    //iagostorch end  
     Bool doFastSearch = (numModesForFullRD != numModesAvailable);
     if (doFastSearch)   //  Rough RD-cost estimation. Select a subset of the modes to perform the full RD-Cost evaluation
     {
@@ -2288,8 +2323,12 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
       for( Int modeIdx = 0; modeIdx < numModesAvailable; modeIdx++ )
       {
         //  iagostorch begin
-        //UInt       uiMode = modeIdx;
-        UInt       uiMode = priorityDirOrder[modeIdx];
+//        UInt       uiMode = modeIdx;
+        UInt       uiMode;
+        if(reducedSetCondition) //If it is in the polar area, evaluate reduced set
+            uiMode = priorityDirOrder[modeIdx];
+        else                    // If it is in the central area, evaluate all the modes
+            uiMode = modeIdx;
         //  iagostorch end
         Distortion uiSad  = 0;
 
@@ -2313,17 +2352,17 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         // Updates the candidates list (modes which will pass through full RD-Cost evaluation)
         CandNum += xUpdateCandList( uiMode, cost, numModesForFullRD, uiRdModeList, CandCostList );
       }
-      
+    
       //    Defines the Most Probable Modes (MPM) based on neighbor PUs
       if (m_pcEncCfg->getFastUDIUseMPMEnabled())
       {
         Int uiPreds[NUM_MOST_PROBABLE_MODES] = {-1, -1, -1};
-
+        
         Int iMode = -1;
         pcCU->getIntraDirPredictor( uiPartOffset, uiPreds, COMPONENT_Y, &iMode );
-
+        
         const Int numCand = ( iMode >= 0 ) ? iMode : Int(NUM_MOST_PROBABLE_MODES);
-
+      
         for( Int j=0; j < numCand; j++)
         {
           Bool mostProbableModeIncluded = false;
@@ -2353,7 +2392,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         uiRdModeList[i] = i;
       }
     }
-
+   
     //===== check modes (using r-d costs) =====
 #if HHI_RQT_INTRA_SPEEDUP_MOD
     UInt   uiSecondBestMode  = MAX_UINT;
