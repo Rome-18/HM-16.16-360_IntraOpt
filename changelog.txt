@@ -1,0 +1,10 @@
+1	During the intra prediction, some modes are skipped in RMD depending on the neighbor availability.
+	If the upper-right PU is not available, the down-left directions (27-34) are skipped, if the bottom-left PU is not available, the upper-right directions (2-9) are skipped, and so on.
+
+2	This procedure is applied to the entire frame
+
+3	The MPM selection is left unchanged
+
+4	The RDO evaluation is left unchanged
+
+5	The remaining of the encoding is left unchanged

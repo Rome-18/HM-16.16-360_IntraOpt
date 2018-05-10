@@ -245,6 +245,16 @@ static const Int MAX_ENCODER_DEBLOCKING_QUALITY_LAYERS =           8 ;
 
 static const UInt LUMA_LEVEL_TO_DQP_LUT_MAXSIZE =                1024; ///< max LUT size for QP offset based on luma
 
+
+//  iagostorch begin
+// ====================================================================================================================
+// Constants for Iago-developed functions and code
+// ====================================================================================================================
+// These constants are used in order to avoid changing several parts of the code during the code optimization
+static const float UPPER_BAND =                                 0.25; // the upper-band corresponds to the top 25% of the frame
+static const float LOWER_BAND =                                 0.75; // the lower-band corresponds to the bottom 25% of the frame, that is, past the 75%
+//  iagostorch end
+
 // ====================================================================================================================
 // Macro functions
 // ====================================================================================================================

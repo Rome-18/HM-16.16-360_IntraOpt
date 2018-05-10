@@ -44,6 +44,59 @@
 #include <math.h>
 #include <limits>
 
+//  iagostorch begin
+//  Functions to evaluate the availability of neighbor PUs
+bool isLeftPUAvail(TComDataCU* pcCU, UInt PUOffset){
+    UInt justAnumber;
+    if(pcCU->getPULeft(justAnumber,pcCU->getZorderIdxInCtu()+PUOffset) != NULL)
+        return true;
+    else
+        return false;
+}
+
+bool isAbovePUAvail(TComDataCU* pcCU, UInt PUOffset){
+    UInt justAnumber;
+    if(pcCU->getPUAbove(justAnumber,pcCU->getZorderIdxInCtu()+PUOffset) != NULL)
+        return true;
+    else
+        return false;
+}
+
+bool isAboveRightPUAvail(TComDataCU* pcCU, UInt PUOffset){
+    UInt justAnumber;
+    UInt uiWidthBit = pcCU->getIntraSizeIdx(0);
+    UInt puSize = (int)pow(2,uiWidthBit+1);
+    if(pcCU->getPUAboveRight(justAnumber,pcCU->getZorderIdxInCtu()+PUOffset, puSize/4) != NULL)
+        return true;
+    else
+        return false;
+}
+
+bool isBelowLeftPUAvail(TComDataCU* pcCU, UInt PUOffset){
+    UInt justAnumber;
+    UInt uiWidthBit = pcCU->getIntraSizeIdx(0);
+    UInt puSize = (int)pow(2,uiWidthBit+1);
+    if(pcCU->getPUBelowLeft(justAnumber,pcCU->getZorderIdxInCtu()+PUOffset, puSize/4) != NULL)
+        return true;
+    else
+        return false;
+}
+
+//  Functions to return the maximum and minimum unsigned int
+UInt maxUInt(UInt a, UInt b){
+    if(a>b)
+        return a;
+    else
+        return b;
+}
+
+UInt minUInt(UInt a, UInt b){
+    if(a<b)
+        return a;
+    else
+        return b;
+}
+//  iagostorch end
 
 //! \ingroup TLibEncoder
 //! \{
@@ -2229,9 +2282,9 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
   //===== loop over partitions =====
   TComTURecurse tuRecurseCU(pcCU, 0);
   TComTURecurse tuRecurseWithPU(tuRecurseCU, false, (uiInitTrDepth==0)?TComTU::DONT_SPLIT : TComTU::QUAD_SPLIT);
-
+  
   do
-  {
+  { //  Choose the best prediction mode for all PU sizes
     const UInt uiPartOffset=tuRecurseWithPU.GetAbsPartIdxTU();
 //  for( UInt uiPU = 0, uiPartOffset=0; uiPU < uiNumPU; uiPU++, uiPartOffset += uiQNumParts )
   //{
@@ -2241,14 +2294,82 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     //===== determine set of modes to be tested (using prediction signal only) =====
     Int numModesAvailable     = 35; //total number of Intra modes
     UInt uiRdModeList[FAST_UDI_MAX_RDMODE_NUM];
+    //  Number of modes which go through the full RD-cost evaluation
     Int numModesForFullRD = m_pcEncCfg->getFastUDIUseMPMEnabled()?g_aucIntraModeNumFast_UseMPM[ uiWidthBit ] : g_aucIntraModeNumFast_NotUseMPM[ uiWidthBit ];
-
+    
     // this should always be true
     assert (tuRecurseWithPU.ProcessComponentSection(COMPONENT_Y));
     initIntraPatternChType( tuRecurseWithPU, COMPONENT_Y, true DEBUG_STRING_PASS_INTO(sTemp2) );
+    
+    //  iagostorch begin
+      
+    //  Decimal number representing the vertical position within the frame. 0.00 -> PU at the top, 0.5 -> PU at the middle
+    float verticalPosition = pcCU->getCUPelY()/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); 
+    // Condition which triggers the algorithm. i.e. the CTU is in the top or bottom 25% of the frame
+    Bool reducedSetCondition = (verticalPosition <= UPPER_BAND)||(verticalPosition >= LOWER_BAND);
+    //  Force the reduced set condition
+    reducedSetCondition = true;
+       
+    Int availableModes[35] = {-1, };    //  Array of available modes in case the reduced set condition is true
+    
+    if(reducedSetCondition){
+        bool AbovePUAvail = false, LeftPUAvail = false, AboveRightPUAvail = false, BelowLeftPUAvail = false;
 
+        //  Evaluates if the neighbor PUs are available
+        AbovePUAvail = isAbovePUAvail(pcCU, uiPartOffset);
+        LeftPUAvail = isLeftPUAvail(pcCU, uiPartOffset);
+        AboveRightPUAvail = isAboveRightPUAvail(pcCU, uiPartOffset);
+        BelowLeftPUAvail = isBelowLeftPUAvail(pcCU, uiPartOffset);    
+
+        //  Maximum and minimum directional mode to be evaluated during RMD
+        UInt maxDir = 0, minDir = 35;
+
+        //  The available modes set is constructed based on the availability of neighbor PUs
+        //  If a given neighbor PU is not available, the directional modes coming from said PU will not be tested in RMD
+        //  Example: if the upper-right PU is not available, the down-left modes (27-34) will not be evaluated
+        if(AboveRightPUAvail){
+            maxDir = maxUInt(34, maxDir);
+            minDir = minUInt(34, minDir);
+        }
+        if(AbovePUAvail){
+            maxDir = maxUInt(26, maxDir);
+            minDir = minUInt(26, minDir);
+        }
+        if(BelowLeftPUAvail){
+            maxDir = maxUInt(2, maxDir);
+            minDir = minUInt(2, minDir);
+        }
+        if(LeftPUAvail){
+            maxDir = maxUInt(10, maxDir);
+            minDir = minUInt(10, minDir);
+        }
+
+        if(maxDir != 0){    //  If at least one neighbor PU is available, create the available modes set based on the minimum and maximum available mode, plus DC and Planar
+            int c;
+            for(c=0; c<(maxDir-minDir+1); c++){
+                availableModes[c] = minDir + c;
+            }
+            availableModes[c] = 0;
+            availableModes[c+1] = 1;
+            numModesAvailable = maxDir-minDir+1+2;      //  Available modes based on neighbor PUs plus Planar and DC
+            numModesForFullRD = minUInt(numModesAvailable, numModesForFullRD);  //  If the available modes for RMD is smaller than for RDO, the number of modes for RDO is reduced
+//            printf("CTU %d @ %dx%d\tPUsize %d\t uiOffset %d\t", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2, uiWidthBit+1), uiPartOffset);
+//            printf("Dirs: %d ... %d\n", minDir, maxDir);
+            //printf("Avail %d\tFullRD %d\n", numModesAvailable, numModesForFullRD);        
+        }
+        else{               //  If no neighbor PU is available, only evaluate Planar and DC
+            availableModes[0] = 0;
+            availableModes[1] = 1;
+            numModesAvailable = 2;
+            numModesForFullRD = numModesAvailable;
+//            printf("CTU %d @ %dx%d\tPUsize %d\t uiOffset %d\t", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2, uiWidthBit+1), uiPartOffset);
+//            printf("DC + Planar\n");
+        }
+    }
+    //iagostorch end  
+    
     Bool doFastSearch = (numModesForFullRD != numModesAvailable);
-    if (doFastSearch)
+    if (doFastSearch)   //  Rough RD-cost estimation. Select a subset of the modes to perform the full RD-Cost evaluation
     {
       assert(numModesForFullRD < numModesAvailable);
 
@@ -2270,7 +2391,13 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
       distParam.bApplyWeight = false;
       for( Int modeIdx = 0; modeIdx < numModesAvailable; modeIdx++ )
       {
-        UInt       uiMode = modeIdx;
+        //  iagostorch begin
+        UInt       uiMode;
+        if(reducedSetCondition)
+            uiMode = availableModes[modeIdx];
+        else
+            uiMode = modeIdx;
+        //  iagostorch end
         Distortion uiSad  = 0;
 
         const Bool bUseFilter=TComPrediction::filteringIntraReferenceSamples(COMPONENT_Y, uiMode, puRect.width, puRect.height, chFmt, sps.getSpsRangeExtension().getIntraSmoothingDisabledFlag());
@@ -2290,19 +2417,20 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 #if DEBUG_INTRA_SEARCH_COSTS
         std::cout << "1st pass mode " << uiMode << " SAD = " << uiSad << ", mode bits = " << iModeBits << ", cost = " << cost << "\n";
 #endif
-
+        // Updates the candidates list (modes which will pass through RDO evaluation)
         CandNum += xUpdateCandList( uiMode, cost, numModesForFullRD, uiRdModeList, CandCostList );
       }
-
+    
+      //    Defines the Most Probable Modes (MPM) based on neighbor PUs
       if (m_pcEncCfg->getFastUDIUseMPMEnabled())
       {
         Int uiPreds[NUM_MOST_PROBABLE_MODES] = {-1, -1, -1};
-
+        
         Int iMode = -1;
         pcCU->getIntraDirPredictor( uiPartOffset, uiPreds, COMPONENT_Y, &iMode );
-
+        
         const Int numCand = ( iMode >= 0 ) ? iMode : Int(NUM_MOST_PROBABLE_MODES);
-
+      
         for( Int j=0; j < numCand; j++)
         {
           Bool mostProbableModeIncluded = false;
@@ -2326,7 +2454,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         uiRdModeList[i] = i;
       }
     }
-
+   
     //===== check modes (using r-d costs) =====
 #if HHI_RQT_INTRA_SPEEDUP_MOD
     UInt   uiSecondBestMode  = MAX_UINT;
