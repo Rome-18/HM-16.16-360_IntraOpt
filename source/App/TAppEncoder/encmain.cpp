@@ -55,22 +55,7 @@ FILE *PU64, *PU32, *PU16, *PU8, *PU4;
 int main(int argc, char* argv[])
 {
   TAppEncTop  cTAppEncTop;
-
-  //    iagostorch begin
-  //    Open the files and write the header data
-  PU64 = fopen("PU64.csv","w");
-  PU32 = fopen("PU32.csv","w");
-  PU16 = fopen("PU16.csv","w");
-  PU8 = fopen("PU8.csv","w");
-  PU4 = fopen("PU4.csv","w");
-  
-  fprintf(PU64, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
-  fprintf(PU32, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
-  fprintf(PU16, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
-  fprintf(PU8, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
-  fprintf(PU4, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
-  //    iagostorch end
-  
+ 
   // print information
   fprintf( stdout, "\n" );
   fprintf( stdout, "HM software: Encoder Version [%s] (including RExt)", NV_VERSION );
@@ -93,6 +78,17 @@ int main(int argc, char* argv[])
 #endif
       return 1;
     }
+    
+    //    iagostorch begin
+    //    Open the files and write the header data 
+    fprintf(PU64, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+    fprintf(PU32, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+    fprintf(PU16, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+    fprintf(PU8, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+    fprintf(PU4, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+    //    iagostorch end
+    
+    
   }
   catch (df::program_options_lite::ParseFailure &e)
   {
