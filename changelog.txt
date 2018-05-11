@@ -1,0 +1,7 @@
+Extracting intra prediction PU information.
+Depending on the PU size, the information is written to a different file (PU4, PU8, ..., PU64).
+The information is formatted as follows:
+
+CTU #, Xpos x Ypos, PU size, Ofset, Mode, Cost, BL, L, A, AR
+
+Where BL, L, A, and AR are BelowLeft, Left, Above, and AboveRight availability.

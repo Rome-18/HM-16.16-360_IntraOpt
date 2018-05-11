@@ -44,7 +44,10 @@
 //! \{
 
 #include "../Lib/TLibCommon/Debug.h"
-
+//  iagostorch begin
+//Files to store the PUs intermediate modes selected by RDO
+FILE *PU64, *PU32, *PU16, *PU8, *PU4;
+//  iagostorch end
 // ====================================================================================================================
 // Main function
 // ====================================================================================================================
@@ -53,6 +56,21 @@ int main(int argc, char* argv[])
 {
   TAppEncTop  cTAppEncTop;
 
+  //    iagostorch begin
+  //    Open the files and write the header data
+  PU64 = fopen("PU64.csv","w");
+  PU32 = fopen("PU32.csv","w");
+  PU16 = fopen("PU16.csv","w");
+  PU8 = fopen("PU8.csv","w");
+  PU4 = fopen("PU4.csv","w");
+  
+  fprintf(PU64, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+  fprintf(PU32, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+  fprintf(PU16, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+  fprintf(PU8, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+  fprintf(PU4, "CTU,POS,PUsize,offset,Mode,Cost,BL,L,A,AR\n");
+  //    iagostorch end
+  
   // print information
   fprintf( stdout, "\n" );
   fprintf( stdout, "HM software: Encoder Version [%s] (including RExt)", NV_VERSION );
@@ -103,7 +121,14 @@ int main(int argc, char* argv[])
 
   // destroy application encoder class
   cTAppEncTop.destroy();
-
+  
+  //iagostorch begin
+  fclose(PU64);
+  fclose(PU32);
+  fclose(PU16);
+  fclose(PU8);
+  fclose(PU4);
+  //iagostorch end
   return 0;
 }
 

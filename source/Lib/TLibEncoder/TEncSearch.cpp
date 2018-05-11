@@ -44,6 +44,46 @@
 #include <math.h>
 #include <limits>
 
+//  iagostorch begin
+extern   FILE *PU64, *PU32, *PU16, *PU8, *PU4;
+
+//  Functions to evaluate the availability of neighbor PUs
+bool isLeftPUAvail(TComDataCU* pcCU, UInt PUOffset){
+    UInt justAnumber;
+    if(pcCU->getPULeft(justAnumber,pcCU->getZorderIdxInCtu()+PUOffset) != NULL)
+        return true;
+    else
+        return false;
+}
+
+bool isAbovePUAvail(TComDataCU* pcCU, UInt PUOffset){
+    UInt justAnumber;
+    if(pcCU->getPUAbove(justAnumber,pcCU->getZorderIdxInCtu()+PUOffset) != NULL)
+        return true;
+    else
+        return false;
+}
+
+bool isAboveRightPUAvail(TComDataCU* pcCU, UInt PUOffset){
+    UInt justAnumber;
+    UInt uiWidthBit = pcCU->getIntraSizeIdx(0);
+    UInt puSize = (int)pow(2,uiWidthBit+1);
+    if(pcCU->getPUAboveRight(justAnumber,pcCU->getZorderIdxInCtu()+PUOffset, puSize/4) != NULL)
+        return true;
+    else
+        return false;
+}
+
+bool isBelowLeftPUAvail(TComDataCU* pcCU, UInt PUOffset){
+    UInt justAnumber;
+    UInt uiWidthBit = pcCU->getIntraSizeIdx(0);
+    UInt puSize = (int)pow(2,uiWidthBit+1);
+    if(pcCU->getPUBelowLeft(justAnumber,pcCU->getZorderIdxInCtu()+PUOffset, puSize/4) != NULL)
+        return true;
+    else
+        return false;
+}
+//  iagostorch end
 
 //! \ingroup TLibEncoder
 //! \{
@@ -2485,6 +2525,36 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         }
       }
     } // Mode loop
+    
+    //iagostorch begin
+    bool AbovePUAvail = false, LeftPUAvail = false, AboveRightPUAvail = false, BelowLeftPUAvail = false;
+
+    //  Evaluates if the neighbor PUs are available
+    AbovePUAvail = isAbovePUAvail(pcCU, uiPartOffset);
+    LeftPUAvail = isLeftPUAvail(pcCU, uiPartOffset);
+    AboveRightPUAvail = isAboveRightPUAvail(pcCU, uiPartOffset);
+    BelowLeftPUAvail = isBelowLeftPUAvail(pcCU, uiPartOffset);    
+
+    //  Write PU data to the respective PU size file
+    //  CTU #, xPos x yPos, PU Size, Offset, Mode,  RD Cost, BL availability, L availability, A availability, AR availability
+    switch(uiWidthBit){
+        case 1:
+            fprintf(PU4, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            break;
+        case 2:
+            fprintf(PU8, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            break;
+        case 3:
+            fprintf(PU16, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            break;
+        case 4:
+            fprintf(PU32, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            break;
+        case 5:
+            fprintf(PU64, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            break;     
+    }
+    //  iagostorch end
 #endif
 
     DEBUG_STRING_APPEND(sDebug, sPU)
