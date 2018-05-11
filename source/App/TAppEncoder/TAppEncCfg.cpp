@@ -55,7 +55,10 @@
 using namespace std;
 namespace po = df::program_options_lite;
 
-
+//  iagostorch begin
+//  Files to hold the PU data
+extern FILE *PU64, *PU32, *PU16, *PU8, *PU4;
+//  iagostorch end
 
 enum ExtendedProfileName // this is used for determining profile strings, where multiple profiles map to a single profile idc with various constraint flag combinations
 {
@@ -1093,8 +1096,8 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[] )
   ("SEIPreferredTransferCharacterisics",              m_preferredTransferCharacteristics,                   -1, "Value for the preferred_transfer_characteristics field of the Alternative transfer characteristics SEI which will override the corresponding entry in the VUI. If negative, do not produce the respective SEI message")
   ("SEIGreenMetadataType",                            m_greenMetadataType,                   0u, "Value for the green_metadata_type specifies the type of metadata that is present in the SEI message. If green_metadata_type is 1, then metadata enabling quality recovery after low-power encoding is present")
   ("SEIXSDMetricType",                                m_xsdMetricType,                      0u, "Value for the xsd_metric_type indicates the type of the objective quality metric. PSNR is the only type currently supported")
-  ;
-
+  ;         
+  
 #if EXTENSION_360_VIDEO
   TExt360AppEncCfg::TExt360AppEncCfgContext ext360CfgContext;
   m_ext360.addOptions(opts, ext360CfgContext);
@@ -1651,6 +1654,29 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[] )
   // print-out parameters
   xPrintParameter();
 
+  //    iagostorch begin
+  //    Use the parsed parameters to create PU files with specific VideoName_QP names
+  std::string fileName, compactName;
+  char strQP[3];
+  sprintf(strQP, "%d", m_iQP);
+   
+  std::size_t lastDelimiter = m_inputFileName.find_last_of("/");
+  fileName = m_inputFileName.substr(lastDelimiter+1);
+  std::size_t firstDelimiter = fileName.find_first_of("_");
+  compactName = fileName.substr(0,firstDelimiter);  //  Video file without path nor _resolution_fps...yuv
+
+  fileName = compactName + "_" + strQP + "_PU4.csv";    //  Append QP and PU size to each file pointer
+  PU4 = fopen(fileName.c_str(),"w");
+  fileName = compactName + "_" + strQP + "_PU8.csv";
+  PU8 = fopen(fileName.c_str(),"w");
+  fileName = compactName + "_" + strQP + "_PU16.csv";
+  PU16 = fopen(fileName.c_str(),"w");
+  fileName = compactName + "_" + strQP + "_PU32.csv";
+  PU32 = fopen(fileName.c_str(),"w");
+  fileName = compactName + "_" + strQP + "_PU64.csv";
+  PU64 = fopen(fileName.c_str(),"w");  
+  
+  //iagostorch end
   return true;
 }
 
