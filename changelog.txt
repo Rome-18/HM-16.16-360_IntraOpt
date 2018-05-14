@@ -8,3 +8,7 @@
 4	The RDO evaluation is left unchanged
 
 5	The remaining of the encoding is left unchanged
+
+Fixed a bug where the vertical position of the CU was not calculated properly due to type mismatch.
+Implemented the possibility to activate the reduced modes algorithm on the Polar or Central area of the frame independently.
+	Uncomment line 2312 of TEncSearch.cpp to enable the algorithm on the central area, leave unchanged to activate in polar area.

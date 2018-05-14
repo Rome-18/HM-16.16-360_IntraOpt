@@ -2304,17 +2304,21 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     //  iagostorch begin
       
     //  Decimal number representing the vertical position within the frame. 0.00 -> PU at the top, 0.5 -> PU at the middle
-    float verticalPosition = pcCU->getCUPelY()/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); 
+    float verticalPosition = (float)pcCU->getCUPelY()/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); 
     // Condition which triggers the algorithm. i.e. the CTU is in the top or bottom 25% of the frame
-    Bool reducedSetCondition = (verticalPosition <= UPPER_BAND)||(verticalPosition >= LOWER_BAND);
+    Bool reducedSetCondition;
+    Bool polarArea = (verticalPosition <= UPPER_BAND)||(verticalPosition >= LOWER_BAND);
+    reducedSetCondition = polarArea;
+    //reducedSetCondition = !polarArea; //  Uncomment to enable algorithm in central area
+    
     //  Force the reduced set condition
-    reducedSetCondition = true;
-       
+    //reducedSetCondition = true;
+    
     Int availableModes[35] = {-1, };    //  Array of available modes in case the reduced set condition is true
     
-    if(reducedSetCondition){
+    if(reducedSetCondition){       
         bool AbovePUAvail = false, LeftPUAvail = false, AboveRightPUAvail = false, BelowLeftPUAvail = false;
-
+        
         //  Evaluates if the neighbor PUs are available
         AbovePUAvail = isAbovePUAvail(pcCU, uiPartOffset);
         LeftPUAvail = isLeftPUAvail(pcCU, uiPartOffset);
