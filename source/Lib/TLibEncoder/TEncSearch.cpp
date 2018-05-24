@@ -2539,19 +2539,19 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     //  CTU #, xPos x yPos, PU Size, Offset, Mode,  RD Cost, BL availability, L availability, A availability, AR availability
     switch(uiWidthBit){
         case 1:
-            fprintf(PU4, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            fprintf(PU4, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
             break;
         case 2:
-            fprintf(PU8, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            fprintf(PU8, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
             break;
         case 3:
-            fprintf(PU16, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            fprintf(PU16, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
             break;
         case 4:
-            fprintf(PU32, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            fprintf(PU32, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
             break;
         case 5:
-            fprintf(PU64, "%d,%dx%d,%d,%d,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            fprintf(PU64, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
             break;     
     }
     //  iagostorch end
