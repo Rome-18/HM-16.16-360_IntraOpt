@@ -47,6 +47,14 @@
 //  iagostorch begin
 extern   FILE *PU64, *PU32, *PU16, *PU8, *PU4;
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
+#include <opencv2/imgproc.hpp>
+#include "opencv2/imgcodecs.hpp"
+
+using namespace cv;
+
 //  Functions to evaluate the availability of neighbor PUs
 bool isLeftPUAvail(TComDataCU* pcCU, UInt PUOffset){
     UInt justAnumber;
@@ -2300,8 +2308,42 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 
       const TComRectangle &puRect=tuRecurseWithPU.getRect(COMPONENT_Y);
       const UInt uiAbsPartIdx=tuRecurseWithPU.GetAbsPartIdxTU();
-
+      
       Pel* piOrg         = pcOrgYuv ->getAddr( COMPONENT_Y, uiAbsPartIdx );
+      
+      // iagostorch begin
+      // When encoding the specific CTU the encoder exports the original CTU and its contours into image files
+      if(uiWidthBit==5 && pcCU->getCtuRsAddr()==970){
+          // Do some processing
+          // Declare a 64x64 image to represent the CTU
+          cv::Mat currCTU = cv::Mat(64,64,CV_16S,piOrg);
+          currCTU.convertTo(currCTU, CV_32F);
+          
+          // Sobel operator in X and Y direction
+          cv::Mat gradx, grady, absgradx, absgrady, grad;
+          int scale = 1,delta = 0, ddepth = CV_32F;
+          cv::Sobel(currCTU,gradx,ddepth,1,0,3,scale,delta,BORDER_DEFAULT);
+          cv::Sobel(currCTU,grady,ddepth,0,1,3,scale,delta,BORDER_DEFAULT);
+          // Absolute values
+          cv::convertScaleAbs(gradx, absgradx);
+          cv::convertScaleAbs(grady, absgrady);
+          
+          // Does an approximation of the gradient magnitude. Average of dx and dy instead of square root of powered sum
+          cv::addWeighted(absgradx, 0.5, absgrady, 0.5, 0, grad);
+
+          // Export the CTU and its contour into files
+          cv::imwrite("img_original.png",currCTU);
+          cv::imwrite("img_contour.png",grad);
+
+          // Gets the orientation of the gradient in each sample of the CTU
+          cv::Mat orientation = cv::Mat(64,64,CV_32F);
+          cv::phase(gradx,grady,orientation,true); //false -> radians, true->degrees
+          
+          // Printout the orientation for each sample
+          // cout << "M = "<< endl << " "  << orientation << endl << endl;
+      }
+      // iagostorch end
+      
       Pel* piPred        = pcPredYuv->getAddr( COMPONENT_Y, uiAbsPartIdx );
       UInt uiStride      = pcPredYuv->getStride( COMPONENT_Y );
       DistParam distParam;

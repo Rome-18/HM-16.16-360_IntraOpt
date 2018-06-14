@@ -45,6 +45,14 @@
 
 #include "../Lib/TLibCommon/Debug.h"
 //  iagostorch begin
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
+#include <opencv2/imgproc.hpp>
+#include "opencv2/imgcodecs.hpp"
+
+using namespace cv;
+
 //Files to store the PUs intermediate modes selected by RDO
 FILE *PU64, *PU32, *PU16, *PU8, *PU4;
 //  iagostorch end
@@ -55,7 +63,19 @@ FILE *PU64, *PU32, *PU16, *PU8, *PU4;
 int main(int argc, char* argv[])
 {
   TAppEncTop  cTAppEncTop;
- 
+  
+  // This code never runs because argc is always greater than 1
+  // The code enables the use of opencv methods in TLibEncoder files, not sure why. Probably library linking issues
+    if(argc < 0){   
+        cv::Mat img;
+        img = cv::imread("no_image.jpg", CV_LOAD_IMAGE_COLOR);
+        cv::Mat deg;
+        cv::Sobel(img,deg,CV_16S,1,0,3,1,0,BORDER_DEFAULT);
+        namedWindow( "Display window", WINDOW_AUTOSIZE ); // Create a window for display.
+        imshow( "Display window", img );                // Show our image inside it.
+        waitKey(25); // Wait for a keystroke in the window
+    }
+
   // print information
   fprintf( stdout, "\n" );
   fprintf( stdout, "HM software: Encoder Version [%s] (including RExt)", NV_VERSION );
