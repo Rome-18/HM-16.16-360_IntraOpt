@@ -2247,6 +2247,61 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     assert (tuRecurseWithPU.ProcessComponentSection(COMPONENT_Y));
     initIntraPatternChType( tuRecurseWithPU, COMPONENT_Y, true DEBUG_STRING_PASS_INTO(sTemp2) );
 
+    //  iagostorch begin
+    
+    //  Mean occurrence rate per mode, considering upper and lower band
+    Float fixed_rates64[35] = {0.27435, 0.1345, 0.0123, 0.01175, 0.01285, 0.01385, 0.01685, 0.0176, 0.0198, 0.03245, 0.2749, 0.02945, 0.0193, 0.01455, 0.0097, 0.00545, 0.0032, 0.00175, 0.00095, 0.00075, 0.00095, 0.00125, 0.0017, 0.0028, 0.00335, 0.0028, 0.0224, 0.00305, 0.0044, 0.0047, 0.00525, 0.0054, 0.00655, 0.00915, 0.01975};
+    Float fixed_rates32[35] = {0.2737, 0.1695, 0.00695, 0.00665, 0.00775, 0.0092, 0.01405, 0.0225, 0.0378, 0.0712, 0.17435, 0.0654, 0.0313, 0.0171, 0.0103, 0.0067, 0.00475, 0.0037, 0.0028, 0.0023, 0.0019, 0.00165, 0.00145, 0.00145, 0.00145, 0.0017, 0.0197, 0.00205, 0.00235, 0.00255, 0.0028, 0.0033, 0.00445, 0.00615, 0.00905};
+    Float fixed_rates16[35] = {0.2297, 0.1187, 0.03925, 0.0377, 0.03845, 0.03705, 0.0409, 0.04155, 0.05165, 0.04125, 0.0486, 0.0382, 0.04245, 0.0307, 0.0211, 0.01655, 0.01265, 0.01075, 0.0088, 0.0082, 0.0071, 0.0063, 0.0059, 0.0051, 0.00485, 0.0041, 0.0126, 0.0043, 0.0047, 0.0047, 0.0047, 0.0048, 0.00505, 0.00525, 0.00625};
+    Float fixed_rates8[35] =  {0.18685, 0.09405, 0.0122, 0.0095, 0.0127, 0.01755, 0.02895, 0.04275, 0.0563, 0.0534, 0.0571, 0.05855, 0.0657, 0.0539, 0.04055, 0.02785, 0.01915, 0.0157, 0.01795, 0.0096, 0.00815, 0.00845, 0.0074, 0.0064, 0.00545, 0.0043, 0.0251, 0.00485, 0.005, 0.00525, 0.00555, 0.0064, 0.0067, 0.0077, 0.0129};
+    Float fixed_rates4[35] =  {0.1849, 0.08105, 0.00995, 0.01245, 0.013, 0.0169, 0.032, 0.04065, 0.04815, 0.0414, 0.0554, 0.0439, 0.0578, 0.05705, 0.05225, 0.0343, 0.02515, 0.0256, 0.01635, 0.01555, 0.0108, 0.0098, 0.00925, 0.0072, 0.0053, 0.00395, 0.036, 0.00435, 0.0051, 0.0054, 0.00615, 0.0059, 0.00655, 0.00885, 0.01155};
+    
+    //  Correlation between RMD selection and RDO selection. First value is actual correlation, remaining is extrapolated
+    Float corrRMD_RDO64[8] = {0.4, 0.35, 0.25,  0,0,0,0,0};
+    Float corrRMD_RDO32[8] = {0.45, 0.35, 0.2,  0,0,0,0,0};
+    Float corrRMD_RDO16[8] = {0.55, 0.3, 0.15,  0,0,0,0,0};
+    Float corrRMD_RDO8[8]  = {0.6, 0.203125, 0.1, 0.05, 0.025, 0.0125, 0.00625, 0.003125};
+    Float corrRMD_RDO4[8]  = {0.70006561, 0.21, 0.063, 0.0189, 0.00567, 0.001701, 0.0005103, 0.00015309};
+    Float corrRMD_RDO[8]   = {1,1,1,1,1,1,1,1};   // Used when adding the score further
+    
+    Float score[35];
+
+    int c;  //Used to copy the PU size-specific array into the score array
+    
+    float verticalPosition = pcCU->getCUPelY()/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); //Decimal number representing the vertical position within the frame. 0.00 -> PU at the top, 0.5 -> PU at the middle
+    // Condition which triggers the algorithm. i.e. the CTU is in the top or bottom 25% of the frame
+    Bool reducedSetCondition = ((verticalPosition <= UPPER_BAND)||(verticalPosition >= LOWER_BAND)) && (uiWidthBit==4); // ONLY EVALUATING ONE SIZE OF PU
+    
+    if(reducedSetCondition){
+        switch(uiWidthBit){
+            case 5: //PU 64x64
+                for(c=0; c<35; c++) score[c] = fixed_rates64[c];
+                for(c=0; c<8; c++)  corrRMD_RDO[c] = corrRMD_RDO64[c];
+                break;
+            case 4: //PU 32x32
+                for(c=0; c<35; c++) score[c] = fixed_rates32[c];
+                for(c=0; c<8; c++)  corrRMD_RDO[c] = corrRMD_RDO32[c];
+                break;
+            case 3: //PU 16x16
+                for(c=0; c<35; c++) score[c] = fixed_rates16[c];
+                for(c=0; c<8; c++)  corrRMD_RDO[c] = corrRMD_RDO16[c];
+                break;
+            case 2: //PU 8x8
+                for(c=0; c<35; c++) score[c] = fixed_rates8[c];
+                for(c=0; c<8; c++)  corrRMD_RDO[c] = corrRMD_RDO8[c];
+                break;
+            case 1: //PU 4x4
+                for(c=0; c<35; c++) score[c] = fixed_rates4[c];
+                for(c=0; c<8; c++)  corrRMD_RDO[c] = corrRMD_RDO4[c];
+                break;       
+            default:
+                printf("Default\n");
+                for(c=0; c<35; c++) score[c] = 1;
+                for(c=0; c<8; c++)  corrRMD_RDO[c] = 1;
+                break;
+        }
+    }
+    //iagostorch end  
     Bool doFastSearch = (numModesForFullRD != numModesAvailable);
     if (doFastSearch)
     {
@@ -2286,7 +2341,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         iModeBits+=xModeBitsIntra( pcCU, uiMode, uiPartOffset, uiDepth, CHANNEL_TYPE_LUMA );
 
         Double cost      = (Double)uiSad + (Double)iModeBits * sqrtLambdaForFirstPass;
-
+        
 #if DEBUG_INTRA_SEARCH_COSTS
         std::cout << "1st pass mode " << uiMode << " SAD = " << uiSad << ", mode bits = " << iModeBits << ", cost = " << cost << "\n";
 #endif
@@ -2294,12 +2349,25 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         CandNum += xUpdateCandList( uiMode, cost, numModesForFullRD, uiRdModeList, CandCostList );
       }
 
+      //    Defines the Most Probable Modes (MPM) based on neighbor PUs
       if (m_pcEncCfg->getFastUDIUseMPMEnabled())
       {
         Int uiPreds[NUM_MOST_PROBABLE_MODES] = {-1, -1, -1};
 
         Int iMode = -1;
         pcCU->getIntraDirPredictor( uiPartOffset, uiPreds, COMPONENT_Y, &iMode );
+
+        if(reducedSetCondition){
+            //  Adds 0.30 score to the MPMs
+            score[uiPreds[0]] += 0.30;
+            score[uiPreds[1]] += 0.30;
+            score[uiPreds[2]] += 0.30;
+            //  Adds the score respective to the correlation between RMD and RDO selections
+            for(Int i=0; i<numModesForFullRD; i++){
+                int mode = uiRdModeList[i];
+                score[mode] += corrRMD_RDO[i];
+            }
+        }
 
         const Int numCand = ( iMode >= 0 ) ? iMode : Int(NUM_MOST_PROBABLE_MODES);
 
@@ -2328,6 +2396,14 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     }
 
     //===== check modes (using r-d costs) =====
+    if(reducedSetCondition){
+        printf("Modo -> score\n");
+        for(Int i=0; i<numModesForFullRD; i++){
+            printf("%d->%f, ", uiRdModeList[i], score[uiRdModeList[i]]);       
+        }
+        printf("\n");
+    }
+        //===== check modes (using r-d costs) =====
 #if HHI_RQT_INTRA_SPEEDUP_MOD
     UInt   uiSecondBestMode  = MAX_UINT;
     Double dSecondBestPUCost = MAX_DOUBLE;
@@ -2416,7 +2492,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
       }
 #endif
     } // Mode loop
-
+    if(reducedSetCondition) printf("Melhor RDO: %d\n\n", uiBestPUMode);
 #if HHI_RQT_INTRA_SPEEDUP
 #if HHI_RQT_INTRA_SPEEDUP_MOD
     for( UInt ui =0; ui < 2; ++ui )
