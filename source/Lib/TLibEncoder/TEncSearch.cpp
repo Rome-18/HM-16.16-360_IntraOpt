@@ -48,6 +48,22 @@
 //! \ingroup TLibEncoder
 //! \{
 
+// iagostorch begin
+//  Function to return the mode with the highest score. Sets the maximum score to -2 to avoid getting duplicate modes in multiple calls
+Int getMaxScoreModeAndResetMax(Float *score, UInt *uiRdModeList, UInt numModesForFullRD){
+    float maxScore = -1.0;
+    int maxScoreMode=-1, mode;
+    for(Int i=0; i<numModesForFullRD; i++){
+        mode = uiRdModeList[i];
+        if(score[mode] > maxScore){
+            maxScore = score[mode];
+            maxScoreMode = mode;
+        }
+    }
+    score[maxScoreMode] = -2.0;
+    return maxScoreMode;
+}
+// iagostorch end
 static const TComMv s_acMvRefineH[9] =
 {
   TComMv(  0,  0 ), // 0
@@ -2248,6 +2264,9 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     initIntraPatternChType( tuRecurseWithPU, COMPONENT_Y, true DEBUG_STRING_PASS_INTO(sTemp2) );
 
     //  iagostorch begin
+    //  Top score modes to be evaluated during RDO according to PU size
+    //  NULL,4x4,8x8,16x16,32x32,64x64
+    Int topScore[6] = {-1, 3,3,2,1,1};
     
     //  Mean occurrence rate per mode, considering upper and lower band
     Float fixed_rates64[35] = {0.27435, 0.1345, 0.0123, 0.01175, 0.01285, 0.01385, 0.01685, 0.0176, 0.0198, 0.03245, 0.2749, 0.02945, 0.0193, 0.01455, 0.0097, 0.00545, 0.0032, 0.00175, 0.00095, 0.00075, 0.00095, 0.00125, 0.0017, 0.0028, 0.00335, 0.0028, 0.0224, 0.00305, 0.0044, 0.0047, 0.00525, 0.0054, 0.00655, 0.00915, 0.01975};
@@ -2264,13 +2283,14 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     Float corrRMD_RDO4[8]  = {0.70006561, 0.21, 0.063, 0.0189, 0.00567, 0.001701, 0.0005103, 0.00015309};
     Float corrRMD_RDO[8]   = {1,1,1,1,1,1,1,1};   // Used when adding the score further
     
+    //  Actual score during encoding
     Float score[35];
 
     int c;  //Used to copy the PU size-specific array into the score array
     
     float verticalPosition = pcCU->getCUPelY()/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); //Decimal number representing the vertical position within the frame. 0.00 -> PU at the top, 0.5 -> PU at the middle
     // Condition which triggers the algorithm. i.e. the CTU is in the top or bottom 25% of the frame
-    Bool reducedSetCondition = ((verticalPosition <= UPPER_BAND)||(verticalPosition >= LOWER_BAND)) && (uiWidthBit==4); // ONLY EVALUATING ONE SIZE OF PU
+    Bool reducedSetCondition = ((verticalPosition <= UPPER_BAND)||(verticalPosition >= LOWER_BAND)) && (uiWidthBit>=1); // Performing reduction in every PU size
     
     if(reducedSetCondition){
         switch(uiWidthBit){
@@ -2396,13 +2416,29 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     }
 
     //===== check modes (using r-d costs) =====
+// iagostorch begin
     if(reducedSetCondition){
-        printf("Modo -> score\n");
-        for(Int i=0; i<numModesForFullRD; i++){
-            printf("%d->%f, ", uiRdModeList[i], score[uiRdModeList[i]]);       
+        // Print the score for each mode
+//        printf("Modo -> score\n");
+//        for(Int i=0; i<numModesForFullRD; i++){
+//            printf("%d->%f, ", uiRdModeList[i], score[uiRdModeList[i]]);        
+//        }
+//        printf("\n");
+        
+        // Modes to be evaluated during RDO
+        Int RDO_modes[topScore[uiWidthBit]] = {-1, };
+        
+        // Find the modes with greater scores
+        Int maxScoreMode = -1;
+        for(Int i=0; i<topScore[uiWidthBit]; i++){
+            maxScoreMode = getMaxScoreModeAndResetMax(score, uiRdModeList, numModesForFullRD);
+            RDO_modes[i] = maxScoreMode;
+//            printf("%d, ",maxScoreMode);
         }
-        printf("\n");
+//        printf("\n");
     }
+// iagostorch end    
+    
         //===== check modes (using r-d costs) =====
 #if HHI_RQT_INTRA_SPEEDUP_MOD
     UInt   uiSecondBestMode  = MAX_UINT;
@@ -2492,7 +2528,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
       }
 #endif
     } // Mode loop
-    if(reducedSetCondition) printf("Melhor RDO: %d\n\n", uiBestPUMode);
+//    if(reducedSetCondition) printf("Melhor RDO: %d\n\n", uiBestPUMode);   // Mode selected during RDO
 #if HHI_RQT_INTRA_SPEEDUP
 #if HHI_RQT_INTRA_SPEEDUP_MOD
     for( UInt ui =0; ui < 2; ++ui )
