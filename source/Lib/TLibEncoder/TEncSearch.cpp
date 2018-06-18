@@ -2436,7 +2436,11 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 //            printf("%d, ",maxScoreMode);
         }
 //        printf("\n");
-    }
+        for(Int i=0; i<topScore[uiWidthBit]; i++){
+            uiRdModeList[i] = RDO_modes[i];
+        }
+        numModesForFullRD = topScore[uiWidthBit];   
+    }   
 // iagostorch end    
     
         //===== check modes (using r-d costs) =====
