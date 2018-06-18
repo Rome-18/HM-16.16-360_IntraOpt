@@ -81,11 +81,11 @@ int main(int argc, char* argv[])
     
     //    iagostorch begin
     //    Open the files and write the header data 
-    fprintf(PU64, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR\n");
-    fprintf(PU32, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR\n");
-    fprintf(PU16, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR\n");
-    fprintf(PU8, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR\n");
-    fprintf(PU4, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR\n");
+    fprintf(PU64, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR,MPM0,MPM1,MPM2,RMD0,RMD1,RMD2\n");
+    fprintf(PU32, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR,MPM0,MPM1,MPM2,RMD0,RMD1,RMD2\n");
+    fprintf(PU16, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR,MPM0,MPM1,MPM2,RMD0,RMD1,RMD2\n");
+    fprintf(PU8, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR,MPM0,MPM1,MPM2,RMD0,RMD1,RMD2,RMD3,RMD4,RMD5,RMD6,RMD7\n");
+    fprintf(PU4, "CTU,POS,PUsize,offset,ModeRMD,CostRMD,ModeRDO,CostRDO,BL,L,A,AR,MPM0,MPM1,MPM2,RMD0,RMD1,RMD2,RMD3,RMD4,RMD5,RMD6,RMD7\n");
     //    iagostorch end
     
     

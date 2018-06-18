@@ -2244,7 +2244,9 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         }
 
         bMaintainResidual[RESIDUAL_ENCODER_SIDE] = !(m_pcEncCfg->getUseReconBasedCrossCPredictionEstimate());
-
+    //iagostorch begin
+        Int MPM[3] = {-1,-1,-1};
+    // iagostorch enf
   // Lambda calculation at equivalent Qp of 4 is recommended because at that Qp, the quantisation divisor is 1.
 #if FULL_NBIT
   const Double sqrtLambdaForFirstPass= (m_pcEncCfg->getCostMode()==COST_MIXED_LOSSLESS_LOSSY_CODING && pcCU->getCUTransquantBypass(0)) ?
@@ -2340,7 +2342,11 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 
         Int iMode = -1;
         pcCU->getIntraDirPredictor( uiPartOffset, uiPreds, COMPONENT_Y, &iMode );
-
+        // iagostorch begin
+        MPM[0] = uiPreds[0];
+        MPM[1] = uiPreds[1];
+        MPM[2] = uiPreds[2];
+        // iagostorch end
         const Int numCand = ( iMode >= 0 ) ? iMode : Int(NUM_MOST_PROBABLE_MODES);
 
         for( Int j=0; j < numCand; j++)
@@ -2539,19 +2545,20 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     //  CTU #, xPos x yPos, PU Size, Offset, Mode,  RD Cost, BL availability, L availability, A availability, AR availability
     switch(uiWidthBit){
         case 1:
-            fprintf(PU4, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            //          CTU Addr, CTU_X, CTU_Y, Size, offset, 1º RMD, custo RMD, RDO, custo RDO, BL, L, A, AR, 1º MPM, 2º MPM, 3º MPM, 1º RMD, 2º RMD, 3º RMD, 1º RMD, 2º RMD, 3º RMD
+            fprintf(PU4, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail, MPM[0], MPM[1], MPM[2], uiRdModeList[0], uiRdModeList[1], uiRdModeList[2], uiRdModeList[3], uiRdModeList[4], uiRdModeList[5], uiRdModeList[6], uiRdModeList[7]);
             break;
         case 2:
-            fprintf(PU8, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            fprintf(PU8, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail, MPM[0], MPM[1], MPM[2], uiRdModeList[0], uiRdModeList[1], uiRdModeList[2], uiRdModeList[3], uiRdModeList[4], uiRdModeList[5], uiRdModeList[6], uiRdModeList[7]);
             break;
         case 3:
-            fprintf(PU16, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            fprintf(PU16, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail, MPM[0], MPM[1], MPM[2], uiRdModeList[0], uiRdModeList[1], uiRdModeList[2]);
             break;
         case 4:
-            fprintf(PU32, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            fprintf(PU32, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail, MPM[0], MPM[1], MPM[2], uiRdModeList[0], uiRdModeList[1], uiRdModeList[2]);
             break;
         case 5:
-            fprintf(PU64, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail);
+            fprintf(PU64, "%d,%dx%d,%d,%d,%d,%f,%d,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", pcCU->getCtuRsAddr(), pcCU->getCUPelX(), pcCU->getCUPelY(), (int)pow(2,uiWidthBit+1), uiPartOffset, uiRdModeList[0], CandCostList[0], uiBestPUMode, dBestPUCost, BelowLeftPUAvail, LeftPUAvail, AbovePUAvail, AboveRightPUAvail, MPM[0], MPM[1], MPM[2], uiRdModeList[0], uiRdModeList[1], uiRdModeList[2]);
             break;     
     }
     //  iagostorch end
