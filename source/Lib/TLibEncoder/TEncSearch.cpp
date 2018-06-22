@@ -2292,9 +2292,13 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     Float score[35];
 
     int c;  //Used to copy the PU size-specific array into the score array
+    float verticalPosition;
     
-    float verticalPosition = (pcCU->getCUPelY() + 63)/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); //Decimal number representing the vertical position of the CTU bottom within the frame. 0.5 -> CTU bottom is at the middle of the frame
-
+    if(uiWidthBit == 1) // CU 8x8 and PU 4x4
+        verticalPosition = (pcCU->getCUPelY() + (2 << (uiWidthBit + 1)) - 1.0)/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); //Decimal number representing the vertical position of the CTU within the frame. 0.5 -> CTU top is at the middle of the frame
+    else    // CU and PU 2N x 2N. CU size = 2 << uiWidthBit
+        verticalPosition = (pcCU->getCUPelY() + (2 << uiWidthBit) - 1.0)/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); //Decimal number representing the vertical position of the CTU within the frame. 0.5 -> CTU top is at the middle of the frame
+    
     Int frameArea = -1;
     if(verticalPosition < UPPER_BAND)
         frameArea = POLAR;
@@ -2304,7 +2308,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         frameArea = CENTRAL;
     else if(verticalPosition < MID_LOWER_BAND)
         frameArea = MID_POLAR;
-    else if(verticalPosition < LOWER_BAND)
+    else if(verticalPosition <= LOWER_BAND)
         frameArea = POLAR;
     else
         frameArea = -1;
