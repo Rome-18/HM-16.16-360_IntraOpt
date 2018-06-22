@@ -250,8 +250,15 @@ static const UInt LUMA_LEVEL_TO_DQP_LUT_MAXSIZE =                1024; ///< max 
 // Constants for Iago-developed functions and code
 // ====================================================================================================================
 // These constants are used in order to avoid changing several parts of the code during the code optimization
-static const float UPPER_BAND =                                 0.25; // the upper-band corresponds to the top 25% of the frame
-static const float LOWER_BAND =                                 0.75; // the lower-band corresponds to the bottom 25% of the frame, that is, past the 75%
+static const float  UPPER_BAND =                                 0.16; // the upper-band corresponds to the top 16% of the frame
+static const float  MID_UPPER_BAND =                             0.35; // the mid-upper-band corresponds from the end of UPPER_BAND until 35% of the frame
+static const float  MIDDLE_BAND =                                0.66;
+static const float  MID_LOWER_BAND =                             0.85;
+static const float  LOWER_BAND =                                 1; // the lower-band corresponds from the end of MID_LOWER_BAND until the end of the frame
+
+static const int    POLAR =                                      0;     // index to reference the frame regions depending on the position
+static const int    MID_POLAR =                                  1;
+static const int    CENTRAL =                                    2;
 //  iagostorch end
 
 // ====================================================================================================================
