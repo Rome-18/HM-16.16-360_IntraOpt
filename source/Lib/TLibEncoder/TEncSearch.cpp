@@ -2288,7 +2288,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 
     int c;  //Used to copy the PU size-specific array into the score array
     
-    float verticalPosition = pcCU->getCUPelY()/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); //Decimal number representing the vertical position within the frame. 0.00 -> PU at the top, 0.5 -> PU at the middle
+    float verticalPosition = (float)pcCU->getCUPelY()/(pcCU->getSlice()->getPic()->getFrameHeightInCtus()*64); //Decimal number representing the vertical position within the frame. 0.00 -> PU at the top, 0.5 -> PU at the middle
     // Condition which triggers the algorithm. i.e. the CTU is in the top or bottom 25% of the frame
     Bool reducedSetCondition = ((verticalPosition <= UPPER_BAND)||(verticalPosition >= LOWER_BAND)) && (uiWidthBit>=1); // Performing reduction in every PU size
     
