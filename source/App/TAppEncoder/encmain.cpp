@@ -68,6 +68,7 @@ int main(int argc, char* argv[])
   // The code enables the use of opencv methods in TLibEncoder files, not sure why. Probably library linking issues
     if(argc < 0){   
         cv::Mat img;
+      //  Mat h = cv::calcHist(img);
         img = cv::imread("no_image.jpg", CV_LOAD_IMAGE_COLOR);
         cv::Mat deg;
         cv::Sobel(img,deg,CV_16S,1,0,3,1,0,BORDER_DEFAULT);
